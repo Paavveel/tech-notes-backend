@@ -1,6 +1,7 @@
 const Note = require('../models/Note');
 const User = require('../models/User');
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 
 // @desc Get all notes
 // @route GET /notes
@@ -22,6 +23,35 @@ const getAllNotes = asyncHandler(async (req, res) => {
   );
 
   res.json(notesWithUser);
+});
+
+// @desc Get note by ID
+// @route GET /notes/:id
+// @access Private
+const getNoteById = asyncHandler(async (req, res) => {
+  const noteId = req.params.id;
+
+  if (!mongoose.Types.ObjectId.isValid(noteId)) {
+    return res.status(400).json({
+      message: `Note ID is not a valid`,
+    });
+  }
+  const note = await Note.findById(noteId).lean();
+
+  if (!note) {
+    return res.status(400).json({ message: "Note doesn't found" });
+  }
+
+  const user = await User.findById(note.user);
+
+  if (!user) {
+    return res.status(400).json({ message: "User in note doesn't exist" });
+  }
+
+  // Add username to the note before sending the response
+  const noteWithUser = { ...note, username: user.username };
+
+  res.json(noteWithUser);
 });
 
 // @desc Create new note
@@ -56,7 +86,7 @@ const createNewNote = asyncHandler(async (req, res) => {
 // @route PATCH /notes
 // @access Private
 const updateNote = asyncHandler(async (req, res) => {
-  const { id, user, title, text, completed } = req.body;
+  const noteId = req.params.id;
 
   // Confirm data
   if (!id || !user || !title || !text || typeof completed !== 'boolean') {
@@ -115,6 +145,7 @@ const deleteNote = asyncHandler(async (req, res) => {
 
 module.exports = {
   getAllNotes,
+  getNoteById,
   createNewNote,
   updateNote,
   deleteNote,
