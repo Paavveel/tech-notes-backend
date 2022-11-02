@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Note = require('../models/Note');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 
 const salt = 10;
 
@@ -24,7 +25,13 @@ const getAllUsers = asyncHandler(async (req, res) => {
 const getUserById = asyncHandler(async (req, res) => {
   const userId = req.params.id;
 
-  const user = await User.findById(userId).select('-password').lean();
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({
+      message: `ID is not a valid`,
+    });
+  }
+
+  const user = await User.findById(userId).select('-password');
 
   if (!user) {
     return res.status(400).json({
